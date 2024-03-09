@@ -69,9 +69,23 @@ export function ControllableParameters() {
             'type':     'color',
             'default':  'ffffff'
         }
+        
+        /*, {
+            'property': 'enableSettingControl',
+            'label':    'Enable Setting Control',
+            'type':     'boolean',
+            'default':  '1'
+        }, {
+            'property': 'pollingRate',
+            'label':    'Polling Rate',
+            'type':     'combobox',
+            'values':   ['125hz', '250hz', '500hz', '1000hz'],
+            'default':  '1000hz'
+        }*/
 	]
 }
 
+// controllableParameters handling functions
 export function onpresetChanged() {
     if (LightingMode == 'Preset') sendStupidColor()
 }
@@ -81,7 +95,16 @@ export function onpresetColorChanged() {
 }
 
 export function onLightingModeChanged() {
-    if (LightingMode == 'Preset') sendStupidColor()
+    if (LightingMode == 'Preset')
+        sendStupidColor()
+    else
+        sendFlushPacket()
+}
+
+export function onpollingRate() {
+    if (enableSettingControl == true) {
+        changePollRate(pollingRate)
+    }
 }
 
 export function Initialize() {}
@@ -210,8 +233,6 @@ function sendColors (shutdown = false) {
     StreamPacket(RGBData.splice(0, 24), [ 0x14, 0x18, 0x20, 0x01 ])
     StreamPacket(RGBData.splice(0, 24), [ 0x2c, 0x18, 0x38, 0x01 ])
 
-    sendFlushPacket()
-
     device.pause(1)
 }
 
@@ -289,6 +310,32 @@ function sendStupidColor () {
     packet.push(color[0])
     packet.push(color[1])
     packet.push(color[2])
+
+    device.write(packet, 64)
+}
+
+function changePollRate (value) {
+    let refresh = 0x00, packet = [
+    //  0x04,0xe9,0x00,0x06,0x18,0x00,0x00,0x00,0x00,0x13,0x04,0x02,0xb1,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+      0x04,0xd8,0x00,0x06,0x02,0x18,0x00,0x00,0x00,0x00,0x04,0x02,0xb1,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+    ]
+
+    switch (value) {
+        case '125hz':
+            refresh = 0x03
+            break
+        case '250hz':
+            refresh = 0x02
+            break
+        case '500hz':
+            refresh = 0x01
+            break
+        case '1000hz':
+            refresh = 0x00
+            break
+    }
+
+    packet.push(refresh)
 
     device.write(packet, 64)
 }
